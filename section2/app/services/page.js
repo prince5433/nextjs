@@ -1,11 +1,15 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export default function Services() {
   return (
     <>
-    <h1>services page</h1>
-    <Link href="/">Home</Link>
+      <h1>All Services</h1>
+      <p>
+        <Link href="/services/web-dev">Web Development</Link>
+      </p>
+      <p>
+        <Link href="/services/seo">SEO</Link>
+      </p>
     </>
   );
 }
