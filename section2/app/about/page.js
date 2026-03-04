@@ -1,6 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 
+export const metadata = {
+  title: "About Us",
+};
 export default function About() {
   return (
     <>

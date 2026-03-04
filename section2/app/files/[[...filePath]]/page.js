@@ -1,5 +1,12 @@
+//metadata
+export const metadata = {
+  title:{
+    absolute:"My Files",
+  }
+  //absolute se jo template tha
+};
 //lecture 10 catch all routes
-export default async function File({ params }) {
+export default async function File({ params }) { 
   const { filePath } = await params;
   return (
     <h1>

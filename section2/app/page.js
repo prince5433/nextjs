@@ -28,6 +28,7 @@
 
 
 import Link from "next/link";
+
 //DYNAMIC ROUTING
 export default async function Home({searchParams, params}) {
   console.log( await searchParams);
@@ -44,7 +45,7 @@ export default async function Home({searchParams, params}) {
       <p>
         <Link href="/services">Services</Link>
       </p>
-      
+
       {/* lecture 10 catch all routes */}
       <p>
         <Link href="/files">Files</Link>
