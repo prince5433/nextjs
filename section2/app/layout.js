@@ -17,9 +17,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <header style={{ background: "teal" }}>Header</header>
+        {/* <header style={{ background: "teal" }}>Header</header> */}
         {children}
-        <footer style={{ background: "brown" }}>Footer</footer>
+        {/* <footer style={{ background: "brown" }}>Footer</footer> */}
       </body>
     </html>
     //ye header aur footer har page pr dikhai denge kyuki humne unko root layout me rakha hai. Aur jo bhi content hum page component me likhenge wo header ke niche aur footer ke upar dikhai dega kyuki humne {children} ko header ke niche aur footer ke upar rakha hai.

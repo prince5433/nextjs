@@ -28,6 +28,8 @@
 
 
 import Link from "next/link";
+import Component from "../_components/page";
+
 
 //DYNAMIC ROUTING
 export default async function Home({searchParams, params}) {
@@ -36,6 +38,7 @@ export default async function Home({searchParams, params}) {
   return (
     <>
       <h1>Technical Agency</h1>
+      <Component/>
       <p>
         <Link href="/blogs">Blogs</Link>
       </p>{" "}

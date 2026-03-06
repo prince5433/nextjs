@@ -524,3 +524,40 @@ Har route group ka apna `layout.js` ho sakta hai — matlab alag header/footer:
 - `(auth)` group → login, register, forgot-password routes
 - `(marketing)` group → about, services, landing pages
 - `(application)` group → dashboard, blogs, files — jo user actually use karta hai
+
+# Private Folders in Next.js — S2 Ep. 10
+
+---
+
+## 1. Private Folders kya hain?
+- `app/` folder mein koi bhi folder banao jisme `page.js` ho → route ban jaata hai
+- Agar kisi folder ko route banana nahi hai (jaise components, utils, helpers) toh use **private folder** banao
+- Private folder banane ke liye folder naam ke aage **underscore** lagao → `_components`
+
+---
+
+## 2. Kaise kaam karta hai?
+- `_components/page.js` banao → `/components` route **nahi** banega
+- Next.js underscore wale folders ko routing se **exclude** kar deta hai
+- Lekin us folder ke components ko import karke use kar sakte ho normally
+
+---
+
+## 3. Agar underscore wala route chahiye ho?
+- URL mein `%5f` use karo — ye underscore ka URL-encoded form hai
+- `%5fcomponents` → `/\_components` route ban jaega
+- Ye rare case hai, generally zaroorat nahi padti
+
+---
+
+## 4. Better Convention — Components folder bahar rakho
+- `_components` app ke andar rakhne ki jagah `components/` folder **app ke bahar** rakho
+- Bahar hone ki wajah se routing mein interfere hi nahi karta
+- Import paths bhi kaam karte hain — Next.js `src/` ya root level se import support karta hai
+
+---
+
+## 5. Kab Private Folder use karein?
+- Jab components, utils, helpers ko `app/` ke andar hi rakhna ho
+- Agar accidentally `page.js` ban jaaye toh route na bane
+- Generally prefer karein → components folder `app/` ke **bahar** rakho
