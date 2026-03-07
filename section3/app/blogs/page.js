@@ -1,4 +1,11 @@
+
+import Button from "@/components/Button";
+import Comments from "@/components/Comments";
+// import Likes from "@/components/Likes";
+import Loading from "@/components/Loading";
+import Views from "@/components/Views";
 import Link from "next/link";
+import { Suspense } from "react";
 
 const Blogs = () => {
   console.log("Blogs Page");
@@ -30,7 +37,7 @@ const Blogs = () => {
       </nav>
       <div>
         <h1>Welcome to Our Blog</h1>
-        <ol className="blog-links">
+        {/* <ol className="blog-links">
           <li>
             <Link href="/blogs/1">Blog 1</Link>
           </li>
@@ -40,7 +47,23 @@ const Blogs = () => {
           <li>
             <Link href="/blogs/3">Blog 3</Link>
           </li>
-        </ol>
+        </ol> */}
+        <div className="blog-links">
+          <br />
+          {/* <Likes /> */}
+          {/* <Suspense fallback={<Loading>Views</Loading>}>
+            <Views />
+          </Suspense>
+          <Suspense fallback={<Loading>Likes</Loading>}>
+            <Likes />
+          </Suspense> */}
+          {/* <Suspense fallback={<Loading>Comments</Loading>}>
+            <Comments />
+          </Suspense> */}
+          <Button />
+          <Comments />
+          <Views />
+        </div>
       </div>
     </>
   );
