@@ -168,3 +168,126 @@
 - **Production** (`npm run build` + `npm start`) → static pages sirf ek baar build time pe run hote hain
 - Production mein static pages ka console log terminal mein nahi dikhta
 - Dynamic pages ka console log production mein bhi har request pe terminal mein dikhta hai
+
+# Static Site Generation (SSG) in Next.js — S3 Ep. 3
+
+---
+
+## 1. SSG kya hai?
+- Dynamic pages jo normally run time pe render hote hain, unhe **build time pe pre-generate** karna
+- Result → user ke request pe server already ready HTML bhejta hai, JS run nahi karna padta
+- Performance bahut improve hoti hai
+
+---
+
+## 2. `generateStaticParams` Function
+- Dynamic route ke `page.js` mein ye function export karo
+- Ye function ek **array of objects** return karta hai
+- Har object mein slug ka naam key hota hai aur page ID value hoti hai
+
+```
+app/blogs/[blogId]/page.js mein:
+
+export function generateStaticParams() {
+  return [
+    { blogId: "1" },
+    { blogId: "2" },
+    { blogId: "3" },
+  ]
+}
+```
+
+- Values **string** mein deni hoti hain — number dene pe error aata hai
+- `npm run build` pe Next.js ye function call karta hai aur har value ke liye alag HTML generate karta hai
+
+---
+
+## 3. API se Dynamic Data fetch karke SSG
+- Function ko `async` banao aur fetch API call karo
+- Response ka data map karke array of objects return karo
+
+```
+export async function generateStaticParams() {
+  const res = await fetch("https://api.example.com/blogs")
+  const data = await res.json()
+  return data.map((item) => ({ blogId: item.id.toString() }))
+}
+```
+
+- Build time pe API call hoti hai → saare pages statically generate ho jaate hain
+
+---
+
+## 4. Build Output mein kya dikhta hai?
+- SSG pages ke liye **filled circle (●)** symbol dikhta hai
+- Dynamic pages ke liye **F** symbol dikhta hai
+- `.next/server/app/blogs/` folder mein har statically generated page ka HTML file milta hai
+
+---
+
+## 5. SSG ke baad kya hota hai?
+- Statically generated pages ke liye server JavaScript nahi chalaata — seedha HTML bhejta hai
+- Jo pages statically generate nahi hue (e.g. `/blogs/201` agar sirf 200 generate kiye) → **dynamically render** hote hain
+- Production mein statically generated pages ke liye console log terminal mein nahi aata
+
+---
+
+## 6. SSG ka Limitation
+- Agar page ka content frequently update hota ho → SSG kaam nahi karega
+- Blogs jaise content ke liye perfect hai (ek baar likhte hain, baad mein rarely change hota hai)
+- Frequently changing content ke liye → **ISR (Incremental Static Regeneration)** → Next Episode
+
+# `dynamicParams` in Next.js SSG — S3 Ep. 4
+
+---
+
+## 1. Default Behaviour (dynamicParams = true)
+- Build time pe jo pages generate hue (e.g. 200 pages), unke alawa agar user kisi **naye page** pe jaaye
+- Toh woh page **runtime pe on-the-fly generate** ho jaata hai
+- Ek baar generate hone ke baad, dobara server se nahi banaya jaata — **existing page serve** hota hai
+
+---
+
+## 2. `dynamicParams` Variable
+- Ye ek exported variable hai jo control karta hai ki build time ke baad naye pages banen ya nahi
+
+```js
+export const dynamicParams = false  // default: true
+```
+
+- **`true` (default)** → Naye pages runtime pe bhi generate hote hain
+- **`false`** → Sirf build time ke pages accessible hain, baaki sab → **404 Not Found**
+
+---
+
+## 3. `false` kab use karein?
+- Jab hume pata ho ki pages ki count **increase nahi hogi**
+- Sirf wahi pages dikhane hain jo build time pe generate hue the
+- Example: Fixed product list, static blog archive
+
+---
+
+## 4. `true` kab rakho?
+- Jab backend mein **data badhta rehta ho** (naye blogs, naye products)
+- Naye pages automatically runtime pe generate hote rahein
+- Default hai, kuch likhna nahi padta
+
+---
+
+## 5. Important Note — Development vs Production
+- Development mode mein **koi bhi page statically generate nahi hota**
+- Har page dynamically render hota hai dev mein
+- `dynamicParams` test karne ke liye **`npm run build` → `npm start`** zaroori hai
+
+---
+
+## 6. Summary Table
+
+| dynamicParams | Build time pages | Runtime new pages |
+|---|---|---|
+| `true` (default) | ✅ Generate hote hain | ✅ On-the-fly generate |
+| `false` | ✅ Generate hote hain | ❌ 404 Not Found |
+
+---
+
+## Next Episode → ISR (Incremental Static Regeneration)
