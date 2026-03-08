@@ -555,3 +555,286 @@ export default function Loading({ children }) {
 | Slowest component ka wait karo | Har component apni speed se load hota hai |
 | Page 9 sec baad ek saath aata hai | Page turant aata hai, parts dhire-dhire fill hote hain |
 | User ko hang feel hota hai | User ko responsive feel hota hai |
+
+# Client vs Server Components in Next.js — S3 Ep. 8
+
+---
+
+## 1. Server Components (Default)
+- Next.js mein **har component by default server component** hota hai
+- Sirf server pe execute hota hai — browser ko code nahi bheja jaata
+- `window`, `localStorage`, event handlers — kuch bhi browser-specific use nahi kar sakte
+- Console log → **terminal mein** dikhta hai, browser mein nahi
+
+---
+
+## 2. Client Components
+- Client component **server pe bhi aur browser pe bhi** execute hota hai
+- Server pe pehle execute hota hai (initial HTML ke liye), phir browser pe bhi
+- Iska **poora code browser ko bheja jaata hai**
+- Browser-specific APIs aur interactivity use kar sakte hain
+
+---
+
+## 3. Client Component kaise banate hain?
+
+```js
+"use client"  // file ke bilkul top pe likhna hai — line 1 ya 2
+
+export default function Likes() {
+  // ab browser APIs aur hooks use kar sakte ho
+}
+```
+
+> ⚠️ `"use client"` mein space hona zaroori hai — dash ya alag format kaam nahi karega
+
+---
+
+## 4. Kab Client Component banana padta hai?
+
+| Use Case | Client Component chahiye? |
+|---|---|
+| `useState`, `useEffect` hooks | ✅ Haan |
+| `onClick`, `onChange` event handlers | ✅ Haan |
+| `window`, `localStorage`, `document` access | ✅ Haan |
+| Sirf data fetch karke render karna | ❌ Nahi — Server Component kafi hai |
+
+---
+
+## 5. `typeof` se Browser APIs safely access karna
+- Server pe `localStorage` directly access karna → **ReferenceError**
+- Safe tarika:
+
+```js
+if (typeof localStorage !== "undefined") {
+  console.log(localStorage)
+}
+
+if (typeof window !== "undefined") {
+  console.log(window)
+}
+```
+
+- `typeof` operator undefined variables pe error nahi deta — `"undefined"` string return karta hai
+
+---
+
+## 6. `async/await` Client Components mein nahi chalta
+
+```js
+// ❌ Yeh nahi chalega
+"use client"
+export default async function MyComponent() { ... }
+
+// ✅ async component sirf Server Component mein kaam karta hai
+```
+
+---
+
+## 7. Parent Client → Saare Children Client ban jaate hain
+
+```
+BlogsPage ("use client") ← parent client hai
+├── Likes    ← automatically client ban gaya
+├── Views    ← automatically client ban gaya
+└── Comments ← automatically client ban gaya
+```
+
+- Parent ko client banate hi **usme import kiye saare components** client ban jaate hain
+- Unka code bhi browser ko bheja jaata hai → **bundle size badhta hai**
+
+---
+
+## 8. Best Practice — Smallest Unit ko Client banao
+
+```
+BlogsPage (Server) ✅
+├── Views    (Server) ✅
+├── Comments (Server) ✅
+└── LikeButton (Client) ✅ ← sirf isko client banao jahan interactivity chahiye
+```
+
+- **Poore page ko client mat banao** — sirf woh chota sa component client banao jisme click/state chahiye
+- Baaki sab server component rehne do → browser ko kam code bheja jaayega → fast page
+
+---
+
+## 9. Production mein kya hota hai?
+- **Server component** ka code → kabhi browser ko nahi jaata
+- **Client component** ka code → minified JS file mein browser ko bheja jaata hai
+- Dev mode mein sab jaata hai (debugging ke liye) — production mein sirf client component ka code jaata hai
+
+---
+
+## Summary
+
+| | Server Component | Client Component |
+|---|---|---|
+| Default | ✅ Haan | ❌ Nahi |
+| Server pe run | ✅ | ✅ |
+| Browser pe run | ❌ | ✅ |
+| Code browser ko jaata hai | ❌ | ✅ |
+| Hooks (`useState`) | ❌ | ✅ |
+| Browser APIs | ❌ | ✅ |
+| `async/await` | ✅ | ❌ |
+
+# Hydration in Next.js — S3 Ep. 9
+
+---
+
+## 1. Hydration kya hai?
+- **Pre-rendered HTML pages mein interactivity add karne ka process**
+- Server se plain HTML aata hai browser mein → phir JavaScript us HTML ke saath connect hoti hai → event listeners attach hote hain
+- Yahi process **hydration** kehlata hai
+
+---
+
+## 2. Kaise kaam karta hai?
+
+```
+Server → Plain HTML generate karta hai (button, links sab HTML mein hain)
+     ↓
+Browser → HTML receive karta hai → page dikhta hai
+     ↓
+JavaScript bundle aata hai → HTML elements dhundh ke event listeners attach karta hai
+     ↓
+Ab page fully interactive hai (clicks, nav sab kaam karta hai)
+```
+
+---
+
+## 3. Hydration sirf Client Components mein hoti hai? — ❌ Nahi
+- Server-only page pe bhi hydration hoti hai
+- Reason → **Next.js ke `<Link>` tags** pe click event listeners lagte hain
+- Ye default anchor behavior (full page reload) rok ke **client-side navigation** karte hain
+- Isliye links hone par bhi hydration zaroori hai
+
+---
+
+## 4. Kya bina kisi Client Component aur Links ke bhi Hydration hoti hai?
+- **Haan** — Development mode mein Next.js check karta hai ki:
+  > "Server ne jo HTML bheja tha, wahi browser pe render ho raha hai ya nahi?"
+- Agar mismatch ho → **Hydration Error** aata hai
+
+---
+
+## 5. Hydration Error kab aata hai?
+- Jab server ka rendered HTML aur browser ka rendered HTML **alag ho**
+- Common cause → Browser extensions (e.g. Dark Mode extension) jo DOM modify kar dete hain
+- Agar extension page ka HTML badal de → server HTML ≠ client HTML → Error
+
+---
+
+## 6. Summary
+
+| Situation | Hydration hoti hai? |
+|---|---|
+| Client component hai page pe | ✅ Haan |
+| Sirf `<Link>` tags hain (no client component) | ✅ Haan |
+| Koi link ya client component nahi | ✅ Haan (dev mode mein check hota hai) |
+| Server aur client HTML match nahi karte | ⚠️ Hydration Error |
+
+---
+
+## Next Episode → Hydration Errors detail mein — kyu aate hain, kaise fix karte hain
+
+# Hydration Errors in Next.js — S3 Ep. 10
+
+---
+
+## 1. Hydration Error kab aata hai?
+- **Ek hi reason** → Server ne jo HTML bheja aur client ne jo HTML render kiya — **dono match nahi karte**
+- Yeh mismatch different cheezein cause kar sakti hain
+
+---
+
+## 2. Common Causes of Hydration Error
+
+**a) Browser-specific condition (`typeof window`)**
+```js
+// ❌ Server pe "server" render hoga, client pe "client" — mismatch!
+if (typeof window === "undefined") {
+  return <p>server</p>
+} else {
+  return <p>client</p>
+}
+```
+
+**b) `Math.random()` use karna**
+```js
+// ❌ Server pe alag value, client pe alag value
+return <p>{Math.random()}</p>
+```
+
+**c) `Date.now()` use karna**
+```js
+// ❌ Server pe alag timestamp, client pe alag timestamp
+return <p>{Date.now()}</p>
+```
+
+**d) Browser Extensions**
+- Dark mode ya koi aur extension jo DOM modify kare → server HTML ≠ client HTML → Error
+
+---
+
+## 3. Hydration Error sirf Development mein dikhta hai
+- **Production mode** mein koi error nahi dikhta user ko
+- Lekin **user experience kharab** hota hai — page ka content change hota hai load ke baad (**CLS — Content Layout Shift**)
+- Slow network pe clearly dikhta hai — ek value aati hai phir suddenly badal jaati hai
+- Next.js dev mode mein batata hai ki "tum kuch galat kar rahe ho"
+
+---
+
+## 4. Hydration Error kyun important hai?
+
+```
+Server HTML bhejta hai → Browser HTML dikhata hai (fast)
+     ↓
+JavaScript aata hai → Hydration hoti hai → Poora component dobara run hota hai client pe
+     ↓
+Agar output alag nikla → DOM change ho jaata hai → User ko "flash" dikhta hai
+```
+
+- Yeh **bad UX** hai — user ko lagta hai page toot raha hai
+
+---
+
+## 5. Error kaise fix karein?
+- **Same output** server aur client dono pe produce karo
+- Browser-specific code ko **`useEffect`** mein daalo (sirf client pe chalta hai)
+- `Math.random()` ya `Date.now()` ka output agar render karna ho → server pe consistent value lo
+
+---
+
+## 6. Kab Error nahi aata?
+```js
+// ✅ Date.now() use kiya lekin DOM mein render nahi kiya — no error
+const timestamp = Date.now()
+if (timestamp) return <p>5</p>  // hamesha same output
+```
+- Agar output same rahe server aur client pe → koi error nahi
+
+---
+
+## 7. Development mein Hydration Issues avoid karne ka tip
+- **Incognito mode** mein develop karo — extensions DOM modify nahi karte
+- Ya extension temporarily off karo
+
+---
+
+## Section Summary — Rendering Paradigms Complete ✅
+
+| Concept | Kya hai |
+|---|---|
+| **SSR** | Server pe har request pe render |
+| **SSG** | Build time pe pre-render |
+| **ISR** | SSG + time-based regeneration |
+| **Dynamic Rendering** | Runtime pe render (force-dynamic, cookies, searchParams) |
+| **Streaming** | Suspense se chunks mein content bhejo |
+| **Server Component** | Sirf server pe run, code browser ko nahi jaata |
+| **Client Component** | Server + client dono pe run, code browser ko jaata hai |
+| **Hydration** | Pre-rendered HTML mein interactivity add karna |
+
+---
+
+## Next Section → Data Fetching in Next.js (fetch API + external libraries)
