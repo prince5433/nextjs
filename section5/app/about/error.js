@@ -5,7 +5,7 @@ export default function Error({ error, reset }) {
 
   return (
     <div>
-      <p>Something went wrong in home page</p>
+      <p>Something went wrong in client side</p>
       <button
         onClick={() => {
           reset();
