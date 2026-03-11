@@ -532,3 +532,350 @@ global-error.js         ← Root layout errors (Production only)
 ---
 
 ## Next Section → API Routes in Next.js
+
+# CSS in Next.js (Global CSS) — S6 Ep. 1
+
+---
+
+## 1. Normal CSS Import karna
+
+```js
+// page.js ya kisi bhi component mein
+import "./home.css"
+import "./blog-id.css"
+```
+
+- Koi magic nahi — seedha import karo, kaam karega
+- Next.js suggestions nahi deta CSS files ke liye — manually type karo
+
+---
+
+## 2. Important Behavior — CSS Global Ho Jaati Hai ⚠️
+
+```
+home.css sirf page.js mein import kiya
+     ↓
+User home page pe gaya → CSS load hui
+     ↓
+Ab user blog page pe gaya → CSS abhi bhi apply hogi!
+```
+
+- Ek baar CSS load ho jaaye → **poori application** pe apply hogi
+- CSS file **jis page/component mein import ho** → tab tak nahi load hogi jab tak user us page pe na jaaye
+- **Hard reload** karo toh CSS unload ho jaati hai (fresh start)
+
+---
+
+## 3. Import Order Matters
+
+```js
+// blog-id.css ke styles win karenge (neeche import kiya)
+import "./home.css"
+import "./blog-id.css"
+
+// home.css ke styles win karenge (neeche import kiya)
+import "./blog-id.css"
+import "./home.css"
+```
+
+- Neeche wala import upar wale ko **overwrite** karta hai
+- CSS `!important` se ye override kar sakte ho
+
+---
+
+## 4. Normal CSS ka Problem — Class Conflict
+
+```css
+/* blog-id.css */
+.title { font-size: 2.5rem; }
+```
+
+- Agar kisi aur page pe bhi `.title` class ho → wahan bhi apply hoga!
+- Ye globally pollute kar sakta hai
+
+---
+
+## 5. Solution — Parent Class + Nesting
+
+```css
+/* blog-id.css */
+.blog-id {
+  .title {
+    font-size: 2.5rem;
+    font-family: cursive;
+  }
+}
+```
+
+```js
+// blog/[blogId]/page.js
+export default function BlogPage() {
+  return (
+    <div className="blog-id">
+      <h1 className="title">Blog Title</h1>
+    </div>
+  )
+}
+```
+
+- `.title` sirf tab apply hoga jab `.blog-id` parent ho
+- CSS Nesting modern browsers mein natively support hoti hai
+- Conflict ka khatra kam ho jaata hai
+
+---
+
+## 6. Normal CSS Kab Use Karein?
+
+| Use Case | Normal CSS | Module CSS |
+|---|---|---|
+| Global styles (fonts, colors, reset) | ✅ Best | ❌ Overkill |
+| Component-specific styles | ⚠️ Parent class lagao | ✅ Better |
+| Zero conflict guarantee | ❌ | ✅ |
+
+---
+
+## 7. Key Takeaway
+> Normal CSS by default **global style** ki tarah behave karta hai — component-specific karna ho toh parent class ya CSS nesting use karo
+
+---
+
+## Next Video → CSS Modules (Scoped CSS) in Next.js
+
+# CSS Modules in Next.js — S6 Ep. 2
+
+---
+
+## 1. CSS Modules kya hai?
+- Normal CSS → globally apply hoti hai, class names conflict kar sakti hain
+- CSS Modules → **automatically class names unique** ban jaate hain → **scoped styles**
+- React mein bhi same concept — Next.js mein koi difference nahi
+
+---
+
+## 2. File Naming Convention
+
+```
+Normal CSS:  blog-id.css
+CSS Module:  blog-id.module.css   ← .module. lagana zaroori hai
+```
+
+---
+
+## 3. Import karna — Alag tarika
+
+```js
+// ❌ Normal CSS wala tarika — CSS Modules mein kaam nahi karega
+import "./blog-id.module.css"
+
+// ✅ CSS Modules ka sahi tarika
+import styles from "./blog-id.module.css"
+```
+
+---
+
+## 4. Classes Use karna
+
+```js
+// CSS module file
+// blog-id.module.css
+.title {
+  font-size: 2.5rem;
+  font-family: cursive;
+}
+
+// Component mein
+export default function BlogPage() {
+  return <h1 className={styles.title}>Blog Title</h1>
+}
+```
+
+- `styles` ek object hai
+- `styles.title` → automatically generated unique class name milti hai
+- Behind the scenes: `.title` → `.blog-id_title__xyz123` jaisi class ban jaati hai
+
+---
+
+## 5. Element Selectors CSS Modules mein
+
+```css
+/* Ye bhi kaam karta hai — element selectors scoped nahi hote */
+body {
+  background-color: cadetblue;
+}
+
+/* Ye scoped hai — class name change hogi */
+.title {
+  color: yellow;
+}
+```
+
+- **Element selectors** (`body`, `h1`, `p`) → globally apply hote hain, scoped nahi
+- **Class selectors** (`.title`, `.card`) → scoped hote hain, rename hote hain
+
+---
+
+## 6. Multiple Modules — No Conflict!
+
+```js
+// home/page.js
+import styles from "./home.module.css"
+// styles.title → home_title__abc
+
+// blogs/[blogId]/page.js
+import styles from "./blog-id.module.css"
+// styles.title → blogId_title__xyz
+```
+
+- Dono files mein `.title` class hai — **koi conflict nahi** kyunki names alag hain
+- `styles.title` same naam se use karo dono mein — internally alag hoga
+
+---
+
+## 7. Normal CSS vs CSS Modules
+
+| | Normal CSS | CSS Modules |
+|---|---|---|
+| Class scope | Global | Component-scoped |
+| Conflict risk | ✅ High | ❌ None |
+| Element selector | Global | Global |
+| Import syntax | `import "./file.css"` | `import styles from "./file.module.css"` |
+| Usage | `className="title"` | `className={styles.title}` |
+
+---
+
+## 8. Best Practice
+
+```js
+// ✅ Best — styles object se access karo
+<div className={styles.title}>
+
+// ⚠️ Avoid — destructure mat karo (variable conflict ho sakta hai)
+const { title } = styles  // agar koi aur 'title' variable ho toh conflict
+```
+
+---
+
+## Next Video → SCSS / SASS in Next.js
+
+# SCSS / SASS in Next.js — S6 Ep. 3
+
+---
+
+## 1. Setup — Ek Command bas
+
+```bash
+npm install sass --save-dev
+```
+
+- Sirf yeh package install karo — koi extra config nahi
+- Production mein SCSS → CSS mein convert ho jaata hai (dev dependency kafi hai)
+
+---
+
+## 2. SCSS vs SASS — Do Syntaxes
+
+| | SCSS | SASS |
+|---|---|---|
+| Curly braces | ✅ Hain | ❌ Nahi (indentation based) |
+| Looks like | CSS | Python |
+| Commonly used | ✅ Companies mein | Rare |
+
+- **SCSS use karo** — zyada popular aur familiar
+
+---
+
+## 3. File Extensions
+
+```
+Normal CSS:    home.css
+SCSS:          home.scss
+SCSS Module:   home.module.scss
+```
+
+---
+
+## 4. SCSS Features — Example
+
+```scss
+// home.scss
+
+// Variables
+$primary-color: #fff;
+$hot-pink: hotpink;
+
+// Element styles
+body {
+  background-color: $hot-pink;
+}
+
+// Nesting (proper highlighting bhi milti hai)
+.blog-id {
+  .title {
+    color: $primary-color;
+    font-size: 2rem;
+  }
+  
+  .para {
+    background-color: cadetblue;
+  }
+}
+```
+
+> ✅ SCSS mein nesting highlight hoti hai — normal CSS file mein nesting ka proper highlighting nahi hota
+
+---
+
+## 5. Import karna
+
+```js
+// Normal SCSS (global)
+import "./home.scss"
+
+// SCSS Module (scoped)
+import styles from "./home.module.scss"
+import styles2 from "./another.module.scss"  // Multiple modules → alag naam do
+```
+
+---
+
+## 6. SCSS Module Use karna
+
+```scss
+/* home.module.scss */
+.para {
+  background-color: cadetblue;
+}
+```
+
+```js
+import styles from "./home.module.scss"
+
+export default function Home() {
+  return <p className={styles.para}>Hello</p>
+}
+```
+
+- CSS Modules ki tarah exactly kaam karta hai — sirf extension `.module.scss` hai
+
+---
+
+## 7. Customization (Advanced)
+
+- `next.config.js` mein SCSS options pass kar sakte ho
+- SCSS ke advanced features (mixins, functions) — separately seekhna padega
+
+---
+
+## Summary
+
+| Feature | Steps |
+|---|---|
+| SCSS setup | `npm install sass --save-dev` |
+| Global SCSS | `import "./file.scss"` |
+| Scoped SCSS Module | `import styles from "./file.module.scss"` |
+| Variables | `$var-name: value;` |
+| Nesting | Normal CSS ki tarah — better highlighting |
+
+---
+
+## Next Video → Tailwind CSS Setup in Next.js
