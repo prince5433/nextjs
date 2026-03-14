@@ -321,3 +321,423 @@ todosData.find(todo => todo.id.toString() === id)
 ---
 
 ## Next Video → Request Object — Properties aur Use Cases
+
+# Request Object in Route Handlers — S7 Ep. 3
+
+---
+
+## 1. Request Object kya hai?
+
+- Ye Next.js ka specific feature **nahi** hai — JavaScript ka native `Request` class hai
+- Same object jo `fetch()` ke andar banta hai
+- Convention: pehle `req` likhte the (Node.js style), ab `request` likhte hain
+
+```js
+export async function GET(request) {
+  console.log(request)  // → Request object
+}
+```
+
+---
+
+## 2. Request Object — Important Properties
+
+```js
+export async function GET(request) {
+  console.log(request.method)   // "GET", "POST", "DELETE", etc.
+  console.log(request.url)      // Full URL → "http://localhost:3000/todos"
+  console.log(request.headers)  // All request headers
+  console.log(request.body)     // ReadableStream (POST/PUT body ke liye)
+}
+```
+
+---
+
+## 3. Headers — Browser Automatically Attach Karta Hai
+
+```
+host: localhost:3000
+connection: keep-alive
+user-agent: Mozilla/5.0 ... Chrome/...
+accept: text/html,...
+accept-language: en-US,...
+cookie: name=procoder; token=xyz;  ← agar cookies set hain toh
+```
+
+- Browser automatically ye headers attach karta hai
+- `cookie` header tabhi aata hai jab cookies set hon
+- `connection: keep-alive` → TCP connection maintain karne ke liye
+
+---
+
+## 4. `Request` Object Manually Banana (How fetch works internally)
+
+```js
+// Browser mein fetch karte waqt behind the scenes yeh hota hai:
+const req = new Request("https://api.example.com/todos", {
+  method: "POST",
+  body: JSON.stringify({ name: "ProCoder" }),
+})
+
+const response = await fetch(req)  // Request object directly pass kar sakte ho
+```
+
+---
+
+## 5. Route Handler mein Request Use karna
+
+```js
+export async function GET(request) {
+  const url = request.url         // full URL
+  const method = request.method   // "GET"
+  
+  // Query params nikalna
+  const { searchParams } = new URL(request.url)
+  const filter = searchParams.get("filter")  // ?filter=active
+  
+  return Response.json({ url, method })
+}
+```
+
+---
+
+## 6. Kab Use Karna Hai?
+
+| Zaroorat | Property |
+|---|---|
+| Full URL chahiye | `request.url` |
+| HTTP method check | `request.method` |
+| Request headers | `request.headers` |
+| POST body data | `request.body` / `request.json()` |
+| Cookies | `request.headers.get("cookie")` |
+| Nahi chahiye | `_` (underscore se ignore karo) |
+
+---
+
+## Task (Next Video ke liye)
+POST route banao `/todos` mein:
+- Naya todo create karo
+- `todos.json` file mein write karo (`writeFile` use karo)
+
+---
+
+## Next Video → POST Route Handler 
+
+# POST Route Handler — S7 Ep. 4
+
+---
+
+## 1. POST Handler — Basic Structure
+
+```js
+// app/todos/route.js
+import { writeFile } from "fs/promises"
+import todosData from "../../todos.json"
+
+export async function POST(request) {
+  const todo = await request.json()  // Client se JSON body receive karo
+
+  const newTodo = {
+    id: crypto.randomUUID(),   // ✅ Unique ID (length+1 mat use karo)
+    text: todo.text,
+    completed: false,           // Server pe default set karo
+  }
+
+  todosData.push(newTodo)
+
+  // File mein likhlo → persistent storage
+  await writeFile("todos.json", JSON.stringify(todosData, null, 2))
+
+  return Response.json(newTodo, { status: 201 })  // 201 = Created
+}
+```
+
+---
+
+## 2. Client se Data Receive karna
+
+```js
+const todo = await request.json()
+// Postman mein body → raw → JSON:
+// { "text": "Complete DSA" }
+```
+
+- `request.json()` → body ko parse karke object return karta hai
+- `async/await` zaroori hai
+
+---
+
+## 3. `json.stringify` — Formatting ke liye
+
+```js
+JSON.stringify(data)           // Single line, no formatting
+JSON.stringify(data, null, 2)  // ✅ 2-space indentation (readable format)
+JSON.stringify(data, null, 10) // Max 10 spaces allowed
+```
+
+| Argument | Kya karta hai |
+|---|---|
+| 1st `data` | Object to convert |
+| 2nd `replacer` | `null` → all fields include; Array → specific fields |
+| 3rd `space` | Indentation spaces (max 10) |
+
+---
+
+## 4. ID Generation — Sahi Tarika
+
+```js
+// ❌ Galat — duplicate IDs aasakte hain
+id: todosData.length + 1
+
+// ✅ Sahi — always unique
+id: crypto.randomUUID()
+// → "550e8400-e29b-41d4-a716-446655440000"
+```
+
+- Length-based ID → ek item delete karo → next add pe duplicate ban sakta hai
+- `crypto.randomUUID()` → Node.js mein natively available (no import needed)
+- UUID ID ab string hai — number nahi → comparison mein `==` use karo
+
+---
+
+## 5. `writeFile` — Full File Replace Hoti Hai
+
+```js
+await writeFile("todos.json", JSON.stringify(todosData, null, 2))
+```
+
+- `writeFile` → poori file delete karke dobara likhta hai
+- Efficient nahi → isliye future mein database (MongoDB) use karenge
+- Path → relative to `process.cwd()` (project root)
+
+---
+
+## 6. Testing — Postman / Thunder Client
+
+- Browser se sirf GET request bheji ja sakti hai (URL bar se)
+- POST request test karne ke liye → **Postman** ya **Thunder Client** (VS Code extension)
+- Method: POST → Body: raw → JSON format
+
+---
+
+## 7. 405 Method Not Allowed
+
+- Agar `POST` function export nahi kiya aur POST request bheji → **405 Method Not Allowed**
+- Next.js automatically ye error deta hai
+
+---
+
+## Task (Next Video ke liye)
+PATCH route banao `/todos/[id]` mein:
+- `text` ya `completed` property update karo
+- Postman se PATCH request bheji → body mein `{ "text": "...", "completed": true }`
+
+---
+
+## Next Video → PATCH Route Handler (Update Todo)
+
+# PUT / PATCH Route Handler (Edit Todo) — S7 Ep. 5
+
+---
+
+## 1. PUT vs PATCH — Kab Kya Use Karein?
+
+| | PATCH | PUT |
+|---|---|---|
+| Use case | Ek ya do specific fields update | Poora object replace |
+| Hamara case | Multiple fields allow → **PUT use karo** | ✅ |
+
+> Practically dono kaam karte hain — convention ka farak hai
+
+---
+
+## 2. PUT Handler — Dynamic Route mein
+
+```js
+// app/todos/[id]/route.js
+import { writeFile } from "fs/promises"
+import todosData from "../../../todos.json"
+
+export async function PUT(request, context) {
+  const { id } = await context.params
+  const editedTodoData = await request.json()
+
+  // 1. ID change karne ki try → reject karo
+  if (editedTodoData.id) {
+    return Response.json(
+      { error: "Changing id is not allowed" },
+      { status: 403 }
+    )
+  }
+
+  // 2. Existing todo find karo (index chahiye replace ke liye)
+  const todoIndex = todosData.findIndex(todo => todo.id == id)
+
+  if (todoIndex === -1) {
+    return Response.json({ error: "Todo not found" }, { status: 404 })
+  }
+
+  // 3. Spread existing todo + overwrite with new data
+  const updatedTodo = {
+    ...todosData[todoIndex],   // purana data
+    ...editedTodoData,         // nayi values overwrite karein
+  }
+
+  // 4. Wahi index pe replace karo (push mat karo!)
+  todosData[todoIndex] = updatedTodo
+
+  // 5. File mein save karo
+  await writeFile("todos.json", JSON.stringify(todosData, null, 2))
+
+  return Response.json(updatedTodo)
+}
+```
+
+---
+
+## 3. Common Mistake — `push` vs Index Replace
+
+```js
+// ❌ Galat — naya item add ho jaayega
+todosData.push(updatedTodo)
+
+// ✅ Sahi — wahi index pe replace karo
+const todoIndex = todosData.findIndex(todo => todo.id == id)
+todosData[todoIndex] = updatedTodo
+```
+
+---
+
+## 4. Spread Pattern — Partial Update
+
+```js
+const updatedTodo = {
+  ...todosData[todoIndex],  // id, text, completed (purana)
+  ...editedTodoData,        // sirf jo client ne bheja wo overwrite hoga
+}
+```
+
+- User sirf `text` bheje → `completed` preserve hoga
+- User sirf `completed` bheje → `text` preserve hoga
+- User `id` bhejne ki try kare → 403 return karo
+
+---
+
+## 5. Postman mein Test karna
+
+```json
+// PUT /todos/:id
+// Body (raw JSON):
+{
+  "text": "Read books",
+  "completed": true
+}
+```
+
+---
+
+## 6. Status Codes Used
+
+| Situation | Status Code |
+|---|---|
+| Update successful | `200` (default) |
+| ID change attempt | `403` Forbidden |
+| Todo not found | `404` Not Found |
+
+---
+
+## Task (Next Video ke liye)
+DELETE route banao `/todos/[id]` mein:
+- Todo find karo by ID → array se remove karo → file mein save karo
+
+---
+
+## Next Video → DELETE Route Handler
+
+# DELETE Route Handler — S7 Ep. 6
+
+---
+
+## 1. DELETE Handler
+
+```js
+// app/todos/[id]/route.js
+import { writeFile } from "fs/promises"
+import todosData from "../../../todos.json"
+
+export async function DELETE(_, context) {
+  const { id } = await context.params
+
+  const todoIndex = todosData.findIndex(todo => todo.id == id)
+
+  if (todoIndex === -1) {
+    return Response.json({ error: "Todo not found" }, { status: 404 })
+  }
+
+  // Array se remove karo
+  todosData.splice(todoIndex, 1)
+
+  // File mein save karo
+  await writeFile("todos.json", JSON.stringify(todosData, null, 2))
+
+  // 204 — Success, No Content
+  return new Response(null, { status: 204 })
+}
+```
+
+---
+
+## 2. `splice` — Array se Item Delete karna
+
+```js
+todosData.splice(todoIndex, 1)
+// splice(startIndex, deleteCount)
+// startIndex pe 1 item delete karo
+```
+
+---
+
+## 3. Response — Delete ke baad kya bhejein?
+
+```js
+// ✅ Standard REST practice — 204 No Content
+return new Response(null, { status: 204 })
+
+// ❌ Yeh kaam nahi karega — null valid JSON nahi hai
+return Response.json(null, { status: 204 })
+
+// ✅ Agar deleted item return karna ho (optional)
+return Response.json({ id, message: "Deleted successfully" })
+```
+
+> `Response.json()` mein valid JSON pass karna zaroori hai — `null` pass karo toh error aayega
+
+---
+
+## 4. Status Codes — Quick Reference
+
+| Operation | Status Code | Meaning |
+|---|---|---|
+| GET success | 200 OK | Data mila |
+| POST success | 201 Created | Naya item bana |
+| PUT/PATCH success | 200 OK | Update ho gaya |
+| DELETE success | 204 No Content | Delete ho gaya, kuch nahi bheja |
+| Not Found | 404 Not Found | Item nahi mila |
+| Forbidden | 403 Forbidden | Action allowed nahi |
+| Bad Request | 400 Bad Request | Invalid data |
+
+---
+
+## 5. Complete CRUD Summary
+
+| Operation | Method | Route | Handler File |
+|---|---|---|---|
+| Read All | GET | /todos | app/todos/route.js |
+| Read One | GET | /todos/:id | app/todos/[id]/route.js |
+| Create | POST | /todos | app/todos/route.js |
+| Update | PUT | /todos/:id | app/todos/[id]/route.js |
+| Delete | DELETE | /todos/:id | app/todos/[id]/route.js |
+
+---
+
+## Next Video → REST API ko Todo App UI mein Integrate karna
