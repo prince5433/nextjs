@@ -740,4 +740,220 @@ return Response.json({ id, message: "Deleted successfully" })
 
 ---
 
-## Next Video → REST API ko Todo App UI mein Integrate karna
+## Next Video → REST API ko Todo App UI mein Integrate 
+
+# API Integration — GET & POST Todo — S7 Ep. 7
+
+---
+
+## 1. GET Integration — useEffect se Data Fetch karna
+
+```js
+"use client"
+import { useState, useEffect } from "react"
+
+export default function Home() {
+  const [todos, setTodos] = useState([])  // default empty array
+
+  useEffect(() => {
+    fetchTodos()
+  }, [])
+
+  // useEffect callback async nahi ho sakta → separate function banao
+  async function fetchTodos() {
+    const response = await fetch("/todos")  // full URL nahi chahiye — same domain
+    const todosData = await response.json()
+    setTodos(todosData.reverse())  // reverse → latest first
+  }
+}
+```
+
+> **`/todos`** — sirf path dena kafi hai, `http://localhost:3000` auto-attach hota hai (same domain)
+
+---
+
+## 2. POST Integration — Naya Todo Add karna
+
+```js
+async function addTodo(todoText) {
+  const response = await fetch("/todos", {
+    method: "POST",
+    body: JSON.stringify({ text: todoText }),
+    headers: { "Content-Type": "application/json" },
+  })
+
+  const newTodo = await response.json()
+
+  // UI mein front pe add karo
+  setTodos(prev => [newTodo, ...prev])
+}
+```
+
+- Backend se ID, `completed: false` automatically set hota hai
+- Frontend se sirf `text` bhejna hai
+
+---
+
+## 3. `.reverse()` — Order Fix karna
+
+```js
+// Backend → oldest first order mein deta hai
+// UI → latest first dikhana chahte hain
+
+setTodos(todosData.reverse())
+```
+
+- `.reverse()` original array mutate karta hai → `.slice().reverse()` zyada safe hai (advanced)
+- Simple case mein `.reverse()` theek hai
+
+---
+
+## 4. Mental Model — Client + Server Ek Jagah
+
+```
+page.js (Client Component — "use client")
+  ↓ useEffect
+  ↓ fetch("/todos")  →  app/todos/route.js (Server — GET handler)
+  ↓ fetch("/todos", {method:"POST"})  →  app/todos/route.js (Server — POST handler)
+```
+
+- Dono ek hi Next.js project mein hain — confusing lagta hai lekin kaam alag hai
+- `"use client"` wala code → browser mein chalta hai
+- `route.js` → server pe chalta hai
+
+---
+
+## 5. Loading State (Optional Improvement)
+
+```js
+const [loading, setLoading] = useState(true)
+
+async function fetchTodos() {
+  setLoading(true)
+  const res = await fetch("/todos")
+  const data = await res.json()
+  setTodos(data.reverse())
+  setLoading(false)
+}
+
+if (loading) return <p>Loading...</p>
+```
+
+---
+
+## Next Video → Edit & Delete Integration in UI
+
+# API Integration — Edit & Delete Todo — S7 Ep. 8
+
+---
+
+## 1. DELETE Integration
+
+```js
+async function deleteTodo(id) {
+  const response = await fetch(`/todos/${id}`, {
+    method: "DELETE",
+  })
+
+  if (response.status === 204) {
+    fetchTodos()  // UI refresh karo
+  }
+}
+```
+
+---
+
+## 2. Toggle Completed (PUT)
+
+```js
+async function toggleTodo(todo) {
+  const response = await fetch(`/todos/${todo.id}`, {
+    method: "PUT",
+    body: JSON.stringify({ completed: !todo.completed }),
+    headers: { "Content-Type": "application/json" },
+  })
+
+  if (response.status === 200) {
+    fetchTodos()  // UI refresh karo
+  }
+}
+```
+
+---
+
+## 3. Update Text (PUT)
+
+```js
+async function updateTodo(id, newText) {
+  const response = await fetch(`/todos/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ text: newText }),
+    headers: { "Content-Type": "application/json" },
+  })
+
+  if (response.status === 200) {
+    fetchTodos()
+  }
+}
+```
+
+---
+
+## 4. Important Bug Fix — File se Read karo, Variable se Nahi
+
+**Problem:** GET route `import` se loaded variable use karta hai → delete ke baad stale data
+
+```js
+// ❌ Galat — imported variable stale ho jaata hai after delete
+import todosData from "../../todos.json"
+export function GET() {
+  return Response.json(todosData)
+}
+
+// ✅ Sahi — har request pe file se fresh read karo
+import { readFile } from "fs/promises"
+export async function GET() {
+  const todosJsonString = await readFile("todos.json", "utf-8")
+  const todos = JSON.parse(todosJsonString)
+  return Response.json(todos)
+}
+```
+
+> Database use karne ke baad ye problem automatically solve ho jaati hai
+
+---
+
+## 5. Optimistic Update (Optional Improvement)
+
+- Abhi: Action → API call → response → UI update (delay visible)
+- Better: Action → UI update immediately → API call background mein
+- RTK Query se automatic optimistic update milta hai
+
+---
+
+## 6. Complete Integration Flow
+
+```
+UI Action          →  fetch()  →  Route Handler  →  File Read/Write
+deleteTodo(id)     →  DELETE /todos/:id  →  splice + writeFile
+toggleTodo(todo)   →  PUT /todos/:id     →  findIndex + update + writeFile
+updateTodo(id,txt) →  PUT /todos/:id     →  findIndex + update + writeFile
+```
+
+---
+
+## Section Summary — Route Handlers (S7)
+
+| Concept | Key Point |
+|---|---|
+| `route.js` | API endpoint banta hai (page nahi) |
+| HTTP Methods | `GET`, `POST`, `PUT`, `DELETE` — named exports |
+| Request body | `await request.json()` |
+| Dynamic params | `await context.params` |
+| Response | `Response.json(data)` ya `new Response(null, {status: 204})` |
+| Unique ID | `crypto.randomUUID()` |
+| Persistent storage | `writeFile` (file) → Next section: MongoDB |
+
+---
+
+## Next Section → MongoDB Database Integration

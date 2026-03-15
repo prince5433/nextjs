@@ -1,51 +1,69 @@
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TodoList from "@/components/TodoList";
 import TodoForm from "@/components/TodoForm";
 import { useTheme } from "next-themes";
 import { MoonIcon, SunIcon } from "lucide-react";
 
-const todosData = [
-  { id: 1, text: "Learn Next.js 15", completed: false },
-  { id: 2, text: "Master Node.js", completed: true },
-  { id: 3, text: "Learn MongoDB", completed: true },
-];
-
 export default function Home() {
-  const [todos, setTodos] = useState(todosData);
+  const [todos, setTodos] = useState([]);
   const { theme = "dark", setTheme } = useTheme();
 
+  useEffect(() => {
+    fetchTodos();
+  }, []);
+
+  const fetchTodos = async () => {
+    const response = await fetch("/todos");
+    const todosData = await response.json();
+    setTodos(todosData.reverse());
+  };
+
   // Add new todo
-  const addTodo = (text) => {
-    const newTodo = {
-      id: Date.now().toString(),
-      text,
-      completed: false,
-    };
+  const addTodo = async (text) => {
+    const response = await fetch("/todos", {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    });
+    const newTodo = await response.json();
     setTodos([newTodo, ...todos]);
   };
 
   // Delete todo
-  const deleteTodo = (id) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
+  const deleteTodo = async (id) => {
+    const response = await fetch(`/todos/${id}`, {
+      method: "DELETE",
+    });
+
+    if (response.status === 204) {
+      fetchTodos();
+    }
   };
-  
+
   // Toggle todo completion
-  const toggleTodo = (id) => {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
+  const toggleTodo = async (id) => {
+    const todo = todos.find((todo) => todo.id === id);
+    const response = await fetch(`/todos/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ completed: !todo.completed }),
+    });
+
+    if (response.status === 200) {
+      fetchTodos();
+    }
   };
 
   // Update todo text
-  const updateTodo = (id, newText) => {
-    setTodos(
-      todos.map((todo) => (todo.id === id ? { ...todo, text: newText } : todo))
-    );
+  const updateTodo = async (id, newText) => {
+    const response = await fetch(`/todos/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ text: newText }),
+    });
+
+    if (response.status === 200) {
+      fetchTodos();
+    }
   };
 
   return (
