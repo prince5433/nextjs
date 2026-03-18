@@ -1,4 +1,3 @@
-
 import { signCookie } from "@/lib/auth";
 import { connectDB } from "@/lib/connectDB";
 import Session from "@/models/sessionModel";
@@ -12,9 +11,18 @@ export async function POST(request) {
   const { email, password } = await request.json();
   try {
     const user = await User.findOne({ email });
-    const isPasswordValid = await bcrypt.compare(password, user.password);// Compare the provided password with the hashed password stored in the database using bcrypt's compare function to validate the user's credentials
+    
+    if (!user) {
+      return Response.json(
+        { error: "Invalid Credentials!" },
+        {
+          status: 400,
+        }
+      );
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    if (!user || !isPasswordValid) {
+    if (!isPasswordValid) {
       return Response.json(
         { error: "Invalid Credentials!" },
         {
@@ -23,14 +31,14 @@ export async function POST(request) {
       );
     }
 
-    const session = await Session.create({ userId: user._id });// Create a new session for the authenticated user
+    const session = await Session.create({ userId: user._id });
     cookieStore.set("sid", signCookie(session.id), {
       httpOnly: true,
       maxAge: 60 * 60 * 24,
     });
 
     return Response.json(
-      { name: user.name, email: user.email },// Return a response with the user's name and email, and a 200 status code to indicate successful login
+      { name: user.name, email: user.email },
       {
         status: 200,
       }

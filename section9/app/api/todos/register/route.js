@@ -1,21 +1,25 @@
+
 import { connectDB } from "@/lib/connectDB";
 import User from "@/models/userModel";
 import bcrypt from "bcrypt";
 
 export async function POST(request) {
   await connectDB();
-  const user = await request.json();// Parse the incoming request body as JSON to get the user data
+  const user = await request.json();
   try {
     const { name, email, password } = user;
-    const hashedPassword = await bcrypt.hash(password, 10);// Hash the user's password using bcrypt with a salt rounds of 10 for security
-    const newUser = await User.create({
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await User.create({
       name,
       email,
-      password: hashedPassword,// Create a new user in the database with the provided name, email, and hashed password
+      password: hashedPassword,
     });
-    return Response.json(newUser, {
-      status: 201,
-    });
+    return Response.json(
+      { name, email },
+      {
+        status: 201,
+      }
+    );
   } catch (err) {
     console.log(err);
     if (err.code === 11000) {

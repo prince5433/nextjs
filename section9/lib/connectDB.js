@@ -1,18 +1,21 @@
 import mongoose from "mongoose";
+import dns from "dns";
 
-const DB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/nextjs";
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
+const DB_URI = process.env.DB_URL
 
 export const connectDB = async () => {
   try {
-    if (mongoose.connection.readyState === 1) {// Check if already connected
+    if (mongoose.connection.readyState === 1) {
       console.log("Already connected!");
       return;
     }
-    await mongoose.connect(DB_URI);// Connect to the database
+    await mongoose.connect(DB_URI);
     console.log("Database connected!");
   } catch (err) {
     console.log(err);
     console.log("Database not connected!");
-    process.exit(1);// Exit the process with failure
+    process.exit(1);
   }
 };
