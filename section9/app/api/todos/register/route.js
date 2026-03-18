@@ -1,12 +1,18 @@
-
 import { connectDB } from "@/lib/connectDB";
 import User from "@/models/userModel";
+import bcrypt from "bcrypt";
 
 export async function POST(request) {
   await connectDB();
-  const user = await request.json();
+  const user = await request.json();// Parse the incoming request body as JSON to get the user data
   try {
-    const newUser = await User.create(user);
+    const { name, email, password } = user;
+    const hashedPassword = await bcrypt.hash(password, 10);// Hash the user's password using bcrypt with a salt rounds of 10 for security
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,// Create a new user in the database with the provided name, email, and hashed password
+    });
     return Response.json(newUser, {
       status: 201,
     });

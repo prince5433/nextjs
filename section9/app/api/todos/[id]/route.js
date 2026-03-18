@@ -1,27 +1,15 @@
 import Todo from "@/models/todoModel";
-import User from "@/models/userModel";
 import { connectDB } from "@/lib/connectDB";
-import { cookies } from "next/headers";
-
-async function getAuthenticatedUserId() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-  if (!userId) return null;
-  const user = await User.findById(userId);
-  return user ? userId : null;
-}
+import { getLoggedInUser } from "@/lib/auth";
 
 export async function GET(_, { params }) {
   await connectDB();
-
-  const userId = await getAuthenticatedUserId();
-  if (!userId) {
-    return Response.json({ error: "Please login" }, { status: 401 });
-  }
+  const user = await getLoggedInUser();
+  if (user instanceof Response) return user;
 
   const { id } = await params;
-  const todo = await Todo.findById(id);
-  if (!todo || todo.userId.toString() !== userId) {
+  const todo = await Todo.findOne({ _id: id, userId: user.id });
+  if (!todo) {
     return Response.json(
       { error: "Todo not found" },
       {
@@ -34,41 +22,29 @@ export async function GET(_, { params }) {
 
 export async function PUT(request, { params }) {
   await connectDB();
-
-  const userId = await getAuthenticatedUserId();
-  if (!userId) {
-    return Response.json({ error: "Please login" }, { status: 401 });
-  }
-
-  const { id } = await params;
-  const todo = await Todo.findById(id);
-  if (!todo || todo.userId.toString() !== userId) {
-    return Response.json({ error: "Todo not found" }, { status: 404 });
-  }
+  const user = await getLoggedInUser();
+  if (user instanceof Response) return user;
 
   const editTodoData = await request.json();
-  const editedTodo = await Todo.findByIdAndUpdate(id, editTodoData, {
-    new: true,
-  });
+  const { id } = await params;
+  const editedTodo = await Todo.updateMany(
+    { _id: id, userId: user.id },
+    editTodoData,
+    {
+      new: true,
+    }
+  );
 
   return Response.json(editedTodo);
 }
 
 export async function DELETE(_, { params }) {
   await connectDB();
-
-  const userId = await getAuthenticatedUserId();
-  if (!userId) {
-    return Response.json({ error: "Please login" }, { status: 401 });
-  }
+  const user = await getLoggedInUser();
+  if (user instanceof Response) return user;
 
   const { id } = await params;
-  const todo = await Todo.findById(id);
-  if (!todo || todo.userId.toString() !== userId) {
-    return Response.json({ error: "Todo not found" }, { status: 404 });
-  }
-
-  await Todo.findByIdAndDelete(id);
+  await Todo.deleteOne({ _id: id, userId: user.id });
   return new Response(null, {
     status: 204,
   });
